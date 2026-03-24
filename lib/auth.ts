@@ -1,8 +1,10 @@
 import { SignJWT, jwtVerify } from 'jose'
 import { cookies } from 'next/headers'
 
-const SECRET_KEY = process.env.JWT_SECRET || 'default-secret-key-that-should-be-changed-in-production'
+const SECRET_KEY = process.env.JWT_SECRET
 const key = new TextEncoder().encode(SECRET_KEY)
+
+if (!SECRET_KEY) throw new Error("JWT_SECRET should set on env files!");
 
 export async function encrypt(payload: any) {
   return await new SignJWT(payload)
