@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Lock, Mail, Loader2, AlertCircle, CheckCircle2, ChevronRight, ArrowRight } from 'lucide-react'
+import { Lock, Mail, Loader2, AlertCircle, CheckCircle2, ArrowRight } from 'lucide-react'
 import { login } from '@/lib/actions-auth'
 
 export default function LoginPage() {
@@ -34,7 +34,7 @@ export default function LoginPage() {
         setStatus({ type: 'error', message: res.error || 'Login gagal' })
         setLoading(false)
       }
-    } catch (err) {
+    } catch {
       setStatus({ type: 'error', message: 'Terjadi kesalahan sistem' })
       setLoading(false)
     }
@@ -42,7 +42,6 @@ export default function LoginPage() {
 
   return (
     <div className="flex min-h-screen items-center justify-center p-4 bg-zinc-950 selection:bg-indigo-500/30 selection:text-indigo-500 overflow-hidden relative">
-      {/* Background elements */}
       <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-indigo-500/10 rounded-full blur-[100px]" />
       <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-purple-500/10 rounded-full blur-[100px]" />
 
@@ -53,7 +52,7 @@ export default function LoginPage() {
         className="w-full max-w-md"
       >
         <div className="mb-8 text-center">
-          <motion.div 
+          <motion.div
             initial={{ scale: 0.8 }}
             animate={{ scale: 1 }}
             className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 mb-6"
@@ -61,12 +60,10 @@ export default function LoginPage() {
             <Lock className="w-8 h-8 text-indigo-500" />
           </motion.div>
           <h1 className="text-3xl font-bold tracking-tight text-white mb-2">Selamat Datang</h1>
-          <p className="text-zinc-400">Masuk untuk mengakses aplikasi pohon keluarga</p>
+          <p className="text-zinc-400">Silakan masuk dengan akun Anda. Semua akses, termasuk viewer, tetap memerlukan login.</p>
         </div>
 
-        <motion.div 
-          className="bg-zinc-900/50 backdrop-blur-xl border border-zinc-800 p-8 rounded-3xl"
-        >
+        <motion.div className="bg-zinc-900/50 backdrop-blur-xl border border-zinc-800 p-8 rounded-3xl">
           <form onSubmit={handleSubmit} className="space-y-6">
             <div className="space-y-2">
               <label className="text-sm font-medium text-zinc-300 ml-1">Email</label>
@@ -77,7 +74,7 @@ export default function LoginPage() {
                 <input
                   type="email"
                   required
-                  placeholder="name@example.com"
+                  placeholder="Masukkan email akun Anda"
                   className="block w-full pl-11 pr-4 py-3 bg-zinc-950 border border-zinc-800 rounded-xl focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 transition-all text-white placeholder:text-zinc-600 outline-hidden"
                   value={email}
                   onChange={e => setEmail(e.target.value)}
@@ -95,7 +92,7 @@ export default function LoginPage() {
                 <input
                   type="password"
                   required
-                  placeholder="••••••••"
+                  placeholder="Masukkan password Anda"
                   className="block w-full pl-11 pr-4 py-3 bg-zinc-950 border border-zinc-800 rounded-xl focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 transition-all text-white placeholder:text-zinc-600 outline-hidden"
                   value={password}
                   onChange={e => setPassword(e.target.value)}
@@ -111,8 +108,8 @@ export default function LoginPage() {
                   animate={{ opacity: 1, height: 'auto' }}
                   exit={{ opacity: 0, height: 0 }}
                   className={`flex items-start gap-3 p-4 rounded-xl text-sm ${
-                    status.type === 'error' 
-                      ? 'bg-red-500/10 text-red-400 border border-red-500/20' 
+                    status.type === 'error'
+                      ? 'bg-red-500/10 text-red-400 border border-red-500/20'
                       : 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
                   }`}
                 >
@@ -147,7 +144,10 @@ export default function LoginPage() {
         </motion.div>
 
         <p className="mt-8 text-center text-sm text-zinc-500">
-          Belum punya akun? Hubungi <a target='_blank' href="https://link.fiandev.com" className="text-indigo-500 hover:text-indigo-400">admin</a> untuk akses
+          Belum punya akun? Hubungi <a className="text-indigo-500 hover:text-indigo-400 cursor-default pointer-events-none">admin</a> agar dibuatkan akses login untuk Anda.
+        </p>
+        <p className="mt-3 text-center text-sm text-zinc-600">
+          Forked project. Dibuat oleh: <a target="_blank" href="https://link.fiandev.com" className="text-zinc-400 hover:text-zinc-300">fiandev.com</a>
         </p>
       </motion.div>
     </div>

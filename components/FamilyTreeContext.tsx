@@ -1,8 +1,8 @@
 'use client'
 
-import React, { createContext, useContext, useState, useMemo, useEffect } from 'react'
-import { Person, Union, ParentChild, TreeData } from '@/lib/types'
-import { checkAuthStatus, logout as logoutAction } from '@/lib/actions-auth'
+import React, { createContext, useContext, useState, useEffect } from 'react'
+import { TreeData, UserRole } from '@/lib/types'
+import { getAuthStatus, logout as logoutAction } from '@/lib/actions-auth'
 import LoginModal from './LoginModal'
 import SettingsModal from './SettingsModal'
 
@@ -11,11 +11,14 @@ interface FamilyTreeContextType {
   rootPersonId: string | null
   highlightPersonId: string | null
   setRootPersonId: (id: string | null) => void
-  getSpouses: (personId: string) => Person[]
-  getChildren: (unionId: string) => Person[]
-  getUnions: (personId: string) => Union[]
+  getSpouses: (personId: string) => TreeData['people']
+  getChildren: (unionId: string) => TreeData['people']
+  getUnions: (personId: string) => TreeData['unions']
   isLoggedIn: boolean
   setIsLoggedIn: (val: boolean) => void
+  userRole: UserRole | null
+  canEditTree: boolean
+  canManageUsers: boolean
   logout: () => Promise<void>
   isLoginModalOpen: boolean
   setLoginModalOpen: (val: boolean) => void
@@ -29,16 +32,21 @@ export function FamilyTreeProvider({ data, children }: { data: TreeData, childre
   const [rootId, setRootId] = useState<string | null>(data.people[0]?.id || null)
   const [highlightId, setHighlightId] = useState<string | null>(null)
   const [isLoggedIn, setIsLoggedIn] = useState(false)
+  const [userRole, setUserRole] = useState<UserRole | null>(null)
   const [isLoginModalOpen, setLoginModalOpen] = useState(false)
   const [isSettingsModalOpen, setSettingsModalOpen] = useState(false)
 
   useEffect(() => {
-    checkAuthStatus().then(setIsLoggedIn)
+    getAuthStatus().then((status) => {
+      setIsLoggedIn(status.isLoggedIn)
+      setUserRole(status.role)
+    })
   }, [])
 
   const logout = async () => {
     await logoutAction()
     setIsLoggedIn(false)
+    setUserRole(null)
   }
 
   const selectPerson = (id: string | null) => {
@@ -65,6 +73,9 @@ export function FamilyTreeProvider({ data, children }: { data: TreeData, childre
     return data.people.filter(p => childIds.includes(p.id))
   }
 
+  const canEditTree = userRole === 'admin' || userRole === 'editor'
+  const canManageUsers = userRole === 'admin'
+
   return (
     <FamilyTreeContext.Provider value={{ 
       data, 
@@ -76,6 +87,9 @@ export function FamilyTreeProvider({ data, children }: { data: TreeData, childre
       getUnions,
       isLoggedIn,
       setIsLoggedIn,
+      userRole,
+      canEditTree,
+      canManageUsers,
       logout,
       isLoginModalOpen,
       setLoginModalOpen,
@@ -86,7 +100,10 @@ export function FamilyTreeProvider({ data, children }: { data: TreeData, childre
       <LoginModal 
         isOpen={isLoginModalOpen} 
         onClose={() => setLoginModalOpen(false)} 
-        onLoginSuccess={() => setIsLoggedIn(true)}
+        onLoginSuccess={(role) => {
+          setIsLoggedIn(true)
+          setUserRole(role)
+        }}
       />
       <SettingsModal 
         isOpen={isSettingsModalOpen} 

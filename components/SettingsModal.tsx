@@ -25,7 +25,6 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
     setSuccess(false)
     
     const formData = new FormData(e.currentTarget)
-    const email = 'admin@gmail.com' // Using the default email for now, or could be passed from context
     const oldPass = formData.get('oldPassword') as string
     const newPass = formData.get('newPassword') as string
     const confirmPass = formData.get('confirmPassword') as string
@@ -36,7 +35,7 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
       return
     }
 
-    const result = await changePassword(email, oldPass, newPass)
+    const result = await changePassword(oldPass, newPass)
     
     setLoading(false)
     if (result.success) {
@@ -62,7 +61,7 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
           <div className="flex justify-between items-center mb-6">
             <div>
               <h2 className="text-2xl font-bold text-white">Pengaturan Profil</h2>
-              <p className="text-zinc-500 text-sm mt-1">Ganti password akun admin Anda</p>
+              <p className="text-zinc-500 text-sm mt-1">Ganti password akun Anda</p>
             </div>
             <button 
               onClick={onClose}

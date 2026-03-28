@@ -1,12 +1,13 @@
 import { SignJWT, jwtVerify } from 'jose'
 import { cookies } from 'next/headers'
+import { SessionUser, UserRole } from './types'
 
 const SECRET_KEY = process.env.JWT_SECRET
 const key = new TextEncoder().encode(SECRET_KEY)
 
 if (!SECRET_KEY) throw new Error("JWT_SECRET should set on env files!");
 
-export async function encrypt(payload: any) {
+export async function encrypt(payload: SessionUser) {
   return await new SignJWT(payload)
     .setProtectedHeader({ alg: 'HS256' })
     .setIssuedAt()
@@ -14,11 +15,17 @@ export async function encrypt(payload: any) {
     .sign(key)
 }
 
-export async function decrypt(input: string): Promise<any> {
+export async function decrypt(input: string): Promise<SessionUser> {
   const { payload } = await jwtVerify(input, key, {
     algorithms: ['HS256'],
   })
-  return payload
+
+  return {
+    id: String(payload.id),
+    email: String(payload.email),
+    role: (payload.role as UserRole) || 'viewer',
+    expires: payload.expires ? String(payload.expires) : undefined,
+  }
 }
 
 export async function getSession() {
@@ -27,7 +34,7 @@ export async function getSession() {
   if (!session) return null
   try {
     return await decrypt(session)
-  } catch (err) {
+  } catch {
     return null
   }
 }

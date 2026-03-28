@@ -1,8 +1,8 @@
 'use client'
 
-import { Person, Status, Gender } from '@/lib/types'
-import { motion, AnimatePresence } from 'framer-motion'
-import { User, Calendar, Circle, Heart, Trash2, Edit2, Camera, Plus } from 'lucide-react'
+import { Person } from '@/lib/types'
+import { motion } from 'framer-motion'
+import { User, Calendar, Heart, Trash2, Edit2, Plus } from 'lucide-react'
 import { clsx, type ClassValue } from 'clsx'
 import { twMerge } from 'tailwind-merge'
 import { useFamilyTree } from './FamilyTreeContext'
@@ -23,7 +23,7 @@ interface PersonCardProps {
 }
 
 export default function PersonCard({ person, onClick, onDelete, onEdit, onAddSpouse, onAddChild, className }: PersonCardProps) {
-  const { highlightPersonId, isLoggedIn } = useFamilyTree()
+  const { highlightPersonId, canEditTree } = useFamilyTree()
   const isDeceased = person.status === 'deceased'
   const isHighlighted = highlightPersonId === person.id
   const cardRef = useRef<HTMLDivElement>(null)
@@ -73,6 +73,7 @@ export default function PersonCard({ person, onClick, onDelete, onEdit, onAddSpo
           "group-hover:scale-105"
         )}>
           {person.photo_url ? (
+            // eslint-disable-next-line @next/next/no-img-element
             <img src={person.photo_url} alt={person.name} className="w-full h-full object-cover" />
           ) : (
             <User size={32} className="text-zinc-400 dark:text-zinc-600" />
@@ -85,7 +86,7 @@ export default function PersonCard({ person, onClick, onDelete, onEdit, onAddSpo
         )} />
       </div>
 
-      <div className="flex flex-col items-center text-center mt-2">
+      <div className="flex flex-col items-center text-center mt-2 mb-2">
         <h3 className="font-semibold text-zinc-900 dark:text-zinc-100 line-clamp-1 group-hover:text-indigo-500 transition-colors uppercase tracking-tight text-xs tracking-wider font-bold">{person.name}</h3>
         {person.birth_date && (
           <p suppressHydrationWarning className="text-[10px] text-zinc-500 dark:text-zinc-400 flex items-center gap-1 mt-0.5">
@@ -95,7 +96,7 @@ export default function PersonCard({ person, onClick, onDelete, onEdit, onAddSpo
         )}
       </div>
 
-      {isLoggedIn && (
+      {canEditTree && (
         <div className="flex gap-1.5 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-all duration-300 absolute -bottom-3 translate-y-0 md:translate-y-2 md:group-hover:translate-y-0">
           <button 
             onClick={(e) => { e.stopPropagation(); onAddSpouse?.(person.id) }}
@@ -114,7 +115,7 @@ export default function PersonCard({ person, onClick, onDelete, onEdit, onAddSpo
         </div>
       )}
 
-      {isLoggedIn && (
+      {canEditTree && (
         <div className="flex gap-2 opacity-100 md:opacity-40 md:group-hover:opacity-100 transition-opacity absolute top-2 right-2">
           {onEdit && (
             <button 

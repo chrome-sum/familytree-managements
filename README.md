@@ -1,25 +1,29 @@
-# 🌳 Families - Modern Family Tree Management
+# Families - Modern Family Tree Management
 
 <p align="center">
   <img src="public/images/main-page.png" alt="Main Graph Page" width="800">
 </p>
 
-A high-performance Next.js application for visualizing and managing complex family trees with a robust PostgreSQL backend.
+A Next.js application for visualizing and managing family trees with a PostgreSQL backend.
 
-## ✨ Features
+## Features
 
-- **Interactive Tree Visualization**: Smooth, animated family tree with highlighting and zooming.
-- **Deep Genealogy**: Support for tracing ancestors through multiple generations (70+ members seeded by default).
-- **Comprehensive Relationships**: Handles complex unions, polygamy, and multi-parent child relationships.
-- **Modern UI**: Built with a sleek dark-mode aesthetic using Tailwind CSS and Framer Motion.
-- **Fast Backend**: Powered by Supabase/PostgreSQL with optimized `postgres.js` queries.
+- Interactive family tree visualization
+- Support for multi-generation genealogy data
+- Role-based access control:
+  - `admin`: manage users and family tree
+  - `editor`: manage family tree
+  - `viewer`: view family tree
+  - `guest`: must log in first and cannot view the tree
+- PostgreSQL backend using `postgres.js`
+- Modern UI built with Tailwind CSS and Framer Motion
 
-## 🚀 Getting Started
+## Getting Started
 
 ### 1. Prerequisites
 
-- **Node.js**: 18.17.0 or later
-- **PostgreSQL**: A running instance (Supabase recommended)
+- Node.js 18.17.0 or later
+- PostgreSQL database (Supabase is supported)
 
 ### 2. Installation
 
@@ -29,51 +33,68 @@ npm install
 
 ### 3. Environment Configuration
 
-Create a `.env` file in the root directory (you can copy from `.env.example`):
+Create a `.env` file in the project root:
 
 ```bash
 POSTGRES_URL="postgresql://user:password@localhost:5432/familytree"
+JWT_SECRET="replace-with-a-secure-random-secret"
 ```
 
-*Note: The setup scripts automatically detect if you are running locally and adapt SSL settings accordingly.*
+### 4. Database Setup
 
-### 4. Database Setup & Seeding
-
-The application includes a unified migration and seeding script that initializes the database schema, creates an admin user, and generates a rich sample family tree.
+Apply the database schema:
 
 ```bash
-npm run seed
+npm run db:setup
 ```
 
-**Default Credentials:**
-- **Email:** `admin@gmail.com`
-- **Password:** `password`
+Important:
+- This script applies `supabase/schema.sql`
+- It does not seed sample family data
+- It does not create a default admin user
+- It is intended for schema setup only
 
-### 5. Start Development
+### 5. Create Initial Admin
+
+After the schema is ready, run the app and open:
+
+```text
+/init-admin
+```
+
+Use that page to create your first admin account.
+
+### 6. Start Development
 
 ```bash
 npm run dev
 ```
 
-Visit [http://localhost:3000](http://localhost:3000) to explore the tree.
+Then open [http://localhost:3000](http://localhost:3000).
 
-## 🛠️ Tech Stack
+## Tech Stack
 
-- **Framework**: [Next.js 15+](https://nextjs.org/) (App Router)
-- **Database**: [PostgreSQL](https://www.postgresql.org/) (via [Supabase](https://supabase.com/))
-- **Icons**: [Lucide React](https://lucide.dev/)
-- **Animations**: [Framer Motion](https://www.framer.com/motion/)
-- **Styling**: [Tailwind CSS](https://tailwindcss.com/)
-- **ORM/Driver**: [postgres.js](https://github.com/porsager/postgres)
+- Framework: Next.js
+- Database: PostgreSQL / Supabase
+- Driver: `postgres.js`
+- Styling: Tailwind CSS
+- Animation: Framer Motion
+- Icons: Lucide React
 
-## 📁 Project Structure
+## Project Structure
 
-- `/app`: Next.js pages and layouts.
-- `/components`: Reusable UI components (Tree container, Sidebar, etc.).
-- `/lib`: Database connection, authentication logic, and shared types.
-- `/supabase`: SQL schema definitions.
-- `migrate.js`: Unified script for database setup and sample data generation.
+- `/app`: routes and layouts
+- `/components`: UI components
+- `/lib`: auth, db access, server actions, and shared types
+- `/supabase`: SQL schema
+- `migrate.js`: schema setup script
 
-## 📄 License
+## Notes
 
-MIT License - feel free to use and modify for your own projects!
+- Access to the family tree requires login
+- User management is available only for `admin`
+- Family tree editing is available for `admin` and `editor`
+
+## License
+
+MIT

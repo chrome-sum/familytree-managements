@@ -3,12 +3,12 @@
 import React, { useState } from 'react'
 import { X, Mail, Lock, LogIn, Loader2, AlertCircle } from 'lucide-react'
 import { login } from '@/lib/actions-auth'
-import { cn } from './PersonCard'
+import { UserRole } from '@/lib/types'
 
 interface LoginModalProps {
   isOpen: boolean
   onClose: () => void
-  onLoginSuccess: () => void
+  onLoginSuccess: (role: UserRole) => void
 }
 
 export default function LoginModal({ isOpen, onClose, onLoginSuccess }: LoginModalProps) {
@@ -21,13 +21,13 @@ export default function LoginModal({ isOpen, onClose, onLoginSuccess }: LoginMod
     e.preventDefault()
     setLoading(true)
     setError(null)
-    
+
     const formData = new FormData(e.currentTarget)
     const result = await login(formData)
-    
+
     setLoading(false)
     if (result.success) {
-      onLoginSuccess()
+      onLoginSuccess(result.role || 'viewer')
       onClose()
     } else {
       setError(result.error || 'Terjadi kesalahan')
@@ -36,19 +36,19 @@ export default function LoginModal({ isOpen, onClose, onLoginSuccess }: LoginMod
 
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-6 md:p-8">
-      <div 
+      <div
         className="absolute inset-0 bg-black/60 backdrop-blur-md animate-in fade-in duration-300"
         onClick={onClose}
       />
-      
+
       <div className="relative w-full max-w-md bg-zinc-900 border border-white/10 rounded-3xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-300">
         <div className="p-8">
           <div className="flex justify-between items-center mb-6">
             <div>
-              <h2 className="text-2xl font-bold text-white">Login Admin</h2>
-              <p className="text-zinc-500 text-sm mt-1">Masuk untuk mengedit data silsilah</p>
+              <h2 className="text-2xl font-bold text-white">Login Pengguna</h2>
+              <p className="text-zinc-500 text-sm mt-1">Semua akses memerlukan akun, termasuk untuk melihat silsilah sebagai viewer</p>
             </div>
-            <button 
+            <button
               onClick={onClose}
               className="p-2 rounded-xl hover:bg-white/5 text-zinc-500 transition-all"
             >
@@ -68,11 +68,11 @@ export default function LoginModal({ isOpen, onClose, onLoginSuccess }: LoginMod
               <label className="text-xs font-bold text-zinc-500 uppercase tracking-widest ml-1">Email</label>
               <div className="relative group">
                 <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-500 group-focus-within:text-indigo-400 transition-colors" size={18} />
-                <input 
-                  type="email" 
+                <input
+                  type="email"
                   name="email"
                   required
-                  placeholder="admin@family.com"
+                  placeholder="Masukkan email akun Anda"
                   className="w-full bg-white/5 border border-white/10 rounded-2xl py-3.5 pl-12 pr-4 focus:ring-2 focus:ring-indigo-500/50 outline-none transition-all font-medium text-white"
                 />
               </div>
@@ -82,17 +82,17 @@ export default function LoginModal({ isOpen, onClose, onLoginSuccess }: LoginMod
               <label className="text-xs font-bold text-zinc-500 uppercase tracking-widest ml-1">Password</label>
               <div className="relative group">
                 <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-500 group-focus-within:text-indigo-400 transition-colors" size={18} />
-                <input 
-                  type="password" 
+                <input
+                  type="password"
                   name="password"
                   required
-                  placeholder="••••••••"
+                  placeholder="Masukkan password Anda"
                   className="w-full bg-white/5 border border-white/10 rounded-2xl py-3.5 pl-12 pr-4 focus:ring-2 focus:ring-indigo-500/50 outline-none transition-all font-medium text-white"
                 />
               </div>
             </div>
 
-            <button 
+            <button
               type="submit"
               disabled={loading}
               className="w-full bg-indigo-500 hover:bg-indigo-600 disabled:opacity-50 disabled:hover:bg-indigo-500 text-white font-bold py-4 rounded-2xl flex items-center justify-center gap-3 transition-all shadow-lg shadow-indigo-500/20 mt-4 h-14"
@@ -102,7 +102,7 @@ export default function LoginModal({ isOpen, onClose, onLoginSuccess }: LoginMod
               ) : (
                 <>
                   <LogIn size={20} />
-                  <span>Masuk Ke Panel</span>
+                  <span>Masuk</span>
                 </>
               )}
             </button>
