@@ -9,12 +9,16 @@ A Next.js application for visualizing and managing family trees with a PostgreSQ
 ## Features
 
 - Interactive family tree visualization
+- Pinch-to-zoom (mobile), wheel-to-zoom (desktop), and pan controls
 - Support for multi-generation genealogy data
 - Role-based access control:
   - `admin`: manage users and family tree
   - `editor`: manage family tree
   - `viewer`: view family tree
   - `guest`: must log in first and cannot view the tree
+- Admin pages:
+  - `/users`: user management
+  - `/audit-logs`: audit trail for admin/editor actions
 - PostgreSQL backend using `postgres.js`
 - Modern UI built with Tailwind CSS and Framer Motion
 
@@ -54,7 +58,14 @@ Important:
 - It does not create a default admin user
 - It is intended for schema setup only
 
-### 5. Create Initial Admin
+### 5. Apply Migrations (Recommended for existing DB)
+
+If your database already exists, apply SQL migrations from `supabase/migrations`, especially:
+
+- `202603280001_add_users_role_rbac.sql`
+- `202603280003_add_audit_logs.sql`
+
+### 6. Create Initial Admin
 
 After the schema is ready, run the app and open:
 
@@ -64,7 +75,7 @@ After the schema is ready, run the app and open:
 
 Use that page to create your first admin account.
 
-### 6. Start Development
+### 7. Start Development
 
 ```bash
 npm run dev
@@ -94,6 +105,16 @@ Then open [http://localhost:3000](http://localhost:3000).
 - Access to the family tree requires login
 - User management is available only for `admin`
 - Family tree editing is available for `admin` and `editor`
+- RBAC policy can be tested with:
+
+```bash
+npm run test:rbac
+```
+
+## Credits
+
+- Original project: [fiandev/familytree-managements](https://github.com/fiandev/familytree-managements)
+- This repository is an extended fork with RBAC, admin user management, audit logs, and improved mobile/desktop interaction.
 
 ## License
 
