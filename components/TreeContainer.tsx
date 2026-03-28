@@ -33,9 +33,39 @@ export default function TreeContainer() {
   const [searchTerm, setSearchTerm] = useState('')
   const [activeTheme, setActiveTheme] = useState('indigo')
   const [modalTab, setModalTab] = useState<'new' | 'existing'>('new')
+  const [selectedUnionId, setSelectedUnionId] = useState<string | null>(null)
 
   const showAlert = (title: string, message: string, type: 'danger' | 'warning' | 'info' | 'success' = 'info', onConfirm?: () => void) => {
     setAlertState({ isOpen: true, title, message, type, onConfirm })
+  }
+
+  const targetPerson = targetId ? data.people.find((person) => person.id === targetId) ?? null : null
+  const availableChildUnions = modalType === 'child' && targetId
+    ? data.unions.filter((union) => union.partner1_id === targetId || union.partner2_id === targetId)
+    : []
+
+  const resetModalState = () => {
+    setModalOpen(false)
+    setTargetId(null)
+    setEditingPerson(null)
+    setSelectedUnionId(null)
+    setModalTab('new')
+  }
+
+  const resolveChildUnionId = () => {
+    if (availableChildUnions.length === 0) return null
+    if (availableChildUnions.length === 1) return availableChildUnions[0].id
+    return selectedUnionId
+  }
+
+  const getUnionLabel = (unionId: string) => {
+    const union = data.unions.find((item) => item.id === unionId)
+    if (!union || !targetId) return 'Pilih pasangan'
+
+    const spouseId = union.partner1_id === targetId ? union.partner2_id : union.partner1_id
+    const spouse = data.people.find((person) => person.id === spouseId)
+
+    return spouse ? `${targetPerson?.name || 'Orang tua'} + ${spouse.name}` : `${targetPerson?.name || 'Orang tua'} + Pasangan`
   }
 
   const handleToggleDivorce = async (id: string, currentStatus: string) => {
@@ -59,6 +89,19 @@ export default function TreeContainer() {
   const handleAddPerson = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault()
     if (!canEditTree) return
+
+    if (modalType === 'child') {
+      if (availableChildUnions.length === 0) {
+        showAlert('Relasi Belum Lengkap', 'Tambahkan pasangan untuk orang tua ini terlebih dahulu sebelum menambahkan anak.', 'warning')
+        return
+      }
+
+      if (availableChildUnions.length > 1 && !selectedUnionId) {
+        showAlert('Pilih Orang Tua', 'Pilih pasangan yang terkait dengan anak ini terlebih dahulu.', 'warning')
+        return
+      }
+    }
+
     setLoading(true)
     const formData = new FormData(e.currentTarget)
     const personData: Partial<Person> = {
@@ -80,19 +123,20 @@ export default function TreeContainer() {
           await addUnion(targetId, newPerson.id)
           showAlert('Berhasil', `${personData.name} telah ditambahkan sebagai pasangan.`, 'success')
         } else if (modalType === 'child' && targetId) {
-          const unions = data.unions.filter(u => u.partner1_id === targetId || u.partner2_id === targetId)
-          if (unions.length > 0) {
-            await addChildToUnion(unions[0].id, newPerson.id)
-            showAlert('Berhasil', `${personData.name} telah ditambahkan sebagai anak.`, 'success')
+          const unionId = resolveChildUnionId()
+          if (!unionId) {
+            showAlert('Gagal', 'Relasi orang tua untuk anak ini belum dipilih.', 'danger')
+            return
           }
+
+          await addChildToUnion(unionId, newPerson.id)
+          showAlert('Berhasil', `${personData.name} telah ditambahkan sebagai anak.`, 'success')
         } else {
           showAlert('Berhasil', `${personData.name} telah ditambahkan ke silsilah.`, 'success')
         }
       }
 
-      setModalOpen(false)
-      setTargetId(null)
-      setEditingPerson(null)
+      resetModalState()
     } catch {
       showAlert('Gagal', 'Terjadi kesalahan saat memproses permintaan Anda.', 'danger')
     } finally {
@@ -119,16 +163,40 @@ export default function TreeContainer() {
     reader.readAsDataURL(file)
   }
 
-  const handleConnectExistingSpouse = async (existingId: string) => {
+  const handleConnectExistingPerson = async (existingId: string) => {
     if (!targetId || !canEditTree) return
+
+    if (modalType === 'child') {
+      if (availableChildUnions.length === 0) {
+        showAlert('Relasi Belum Lengkap', 'Tambahkan pasangan untuk orang tua ini terlebih dahulu sebelum menambahkan anak.', 'warning')
+        return
+      }
+
+      if (availableChildUnions.length > 1 && !selectedUnionId) {
+        showAlert('Pilih Orang Tua', 'Pilih pasangan yang terkait dengan anak ini terlebih dahulu.', 'warning')
+        return
+      }
+    }
+
     setLoading(true)
     try {
-      await addUnion(targetId, existingId)
-      showAlert('Berhasil', 'Anggota telah berhasil disambungkan sebagai pasangan.', 'success')
-      setModalOpen(false)
-      setTargetId(null)
+      if (modalType === 'child') {
+        const unionId = resolveChildUnionId()
+        if (!unionId) {
+          showAlert('Gagal', 'Relasi orang tua untuk anak ini belum dipilih.', 'danger')
+          return
+        }
+
+        await addChildToUnion(unionId, existingId)
+        showAlert('Berhasil', 'Anggota telah berhasil disambungkan sebagai anak.', 'success')
+      } else {
+        await addUnion(targetId, existingId)
+        showAlert('Berhasil', 'Anggota telah berhasil disambungkan sebagai pasangan.', 'success')
+      }
+
+      resetModalState()
     } catch {
-      showAlert('Gagal', 'Gagal menyambungkan pasangan.', 'danger')
+      showAlert('Gagal', modalType === 'child' ? 'Gagal menyambungkan anak.' : 'Gagal menyambungkan pasangan.', 'danger')
     } finally {
       setLoading(false)
     }
@@ -176,8 +244,8 @@ export default function TreeContainer() {
         onSearch={setSearchTerm}
         onSelectRoot={setRootPersonId}
         currentRootId={rootPersonId}
-        onAddMember={() => { setModalType('add'); setTargetId(null); setModalOpen(true); setModalTab('new'); }}
-        onEditMember={(person) => { setEditingPerson(person); setModalType('edit'); setModalOpen(true); setModalTab('new'); }}
+        onAddMember={() => { setModalType('add'); setTargetId(null); setEditingPerson(null); setSelectedUnionId(null); setModalOpen(true); setModalTab('new'); }}
+        onEditMember={(person) => { setEditingPerson(person); setModalType('edit'); setTargetId(null); setSelectedUnionId(null); setModalOpen(true); setModalTab('new'); }}
         isSidebarOpen={isSidebarOpen}
         setSidebarOpen={setSidebarOpen}
         onExport={handleExport}
@@ -249,8 +317,8 @@ export default function TreeContainer() {
           onClick={() => setSidebarOpen(false)}
           className="w-full h-full overflow-hidden">
           <FamilyTreeLayout
-            onAddSpouse={canEditTree ? (id) => { setTargetId(id); setModalType('spouse'); setModalOpen(true); setModalTab('new'); } : undefined}
-            onAddChild={canEditTree ? (id) => { setTargetId(id); setModalType('child'); setModalOpen(true); setModalTab('new'); } : undefined}
+            onAddSpouse={canEditTree ? (id) => { setTargetId(id); setEditingPerson(null); setSelectedUnionId(null); setModalType('spouse'); setModalOpen(true); setModalTab('new'); } : undefined}
+            onAddChild={canEditTree ? (id) => { setTargetId(id); setEditingPerson(null); setSelectedUnionId(null); setModalType('child'); setModalOpen(true); setModalTab('new'); } : undefined}
             onToggleDivorce={canEditTree ? handleToggleDivorce : undefined}
             onDelete={canEditTree ? (id) => {
               showAlert(
@@ -263,7 +331,7 @@ export default function TreeContainer() {
                 }
               )
             } : undefined}
-            onEdit={canEditTree ? (person) => { setEditingPerson(person); setModalType('edit'); setModalOpen(true); setModalTab('new'); } : undefined}
+            onEdit={canEditTree ? (person) => { setEditingPerson(person); setTargetId(null); setSelectedUnionId(null); setModalType('edit'); setModalOpen(true); setModalTab('new'); } : undefined}
           />
         </div>
       </main>
@@ -276,7 +344,7 @@ export default function TreeContainer() {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              onClick={() => { setModalOpen(false); setEditingPerson(null); }}
+              onClick={resetModalState}
               className="absolute inset-0 bg-black/60 backdrop-blur-md"
             />
             <motion.div
@@ -295,12 +363,48 @@ export default function TreeContainer() {
                   </p>
                 </div>
                 <button
-                  onClick={() => { setModalOpen(false); setEditingPerson(null); }}
+                  onClick={resetModalState}
                   className="p-2 rounded-xl hover:bg-white/5 transition-all text-zinc-500"
                 >
                   <X size={20} />
                 </button>
               </div>
+
+              {modalType === 'child' && targetPerson && (
+                <div className="mb-5 rounded-2xl border border-white/10 bg-white/5 p-4 shrink-0">
+                  <p className="text-xs uppercase tracking-wider text-zinc-500 font-bold">Relasi Orang Tua</p>
+                  {availableChildUnions.length === 0 ? (
+                    <p className="text-sm text-amber-300 mt-2">
+                      {targetPerson.name} belum memiliki pasangan. Tambahkan pasangan terlebih dahulu sebelum menambahkan anak.
+                    </p>
+                  ) : availableChildUnions.length === 1 ? (
+                    <p className="text-sm text-zinc-300 mt-2">
+                      Anak akan dihubungkan ke pasangan <span className="font-semibold text-white">{getUnionLabel(availableChildUnions[0].id)}</span>.
+                    </p>
+                  ) : (
+                    <div className="mt-3 space-y-2">
+                      <p className="text-sm text-zinc-300">Pilih pasangan yang terkait dengan anak ini:</p>
+                      <div className="space-y-2">
+                        {availableChildUnions.map((union) => (
+                          <button
+                            key={union.id}
+                            type="button"
+                            onClick={() => setSelectedUnionId(union.id)}
+                            className={cn(
+                              'w-full rounded-2xl border px-4 py-3 text-left transition-all',
+                              selectedUnionId === union.id
+                                ? 'border-indigo-500 bg-indigo-500/10 text-white'
+                                : 'border-white/10 bg-zinc-950/50 text-zinc-300 hover:border-white/20 hover:bg-white/5'
+                            )}
+                          >
+                            {getUnionLabel(union.id)}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
 
               {/* Tabs for Add Spouse/Child */}
               {(modalType === 'spouse' || modalType === 'child') && (
@@ -457,7 +561,9 @@ export default function TreeContainer() {
                           .map(p => (
                             <button
                               key={p.id}
-                              onClick={() => handleConnectExistingSpouse(p.id)}
+                              type="button"
+                              onClick={() => handleConnectExistingPerson(p.id)}
+                              disabled={loading}
                               className="w-full p-4 rounded-2xl bg-white/5 border border-white/5 hover:border-indigo-500/50 flex items-center justify-between group transition-all"
                             >
                               <div className="flex items-center gap-3">

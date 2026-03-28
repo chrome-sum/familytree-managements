@@ -1,22 +1,33 @@
 import { SignJWT, jwtVerify } from 'jose'
+import type { JWTPayload } from 'jose'
 import { cookies } from 'next/headers'
 import { SessionUser, UserRole } from './types'
 
-const SECRET_KEY = process.env.JWT_SECRET
-const key = new TextEncoder().encode(SECRET_KEY)
+function getJwtKey() {
+  const secretKey = process.env.JWT_SECRET
+  if (!secretKey) {
+    throw new Error('JWT_SECRET should set on env files!')
+  }
 
-if (!SECRET_KEY) throw new Error("JWT_SECRET should set on env files!");
+  return new TextEncoder().encode(secretKey)
+}
 
 export async function encrypt(payload: SessionUser) {
-  return await new SignJWT(payload)
+  const jwtPayload: JWTPayload & Pick<SessionUser, 'id' | 'email' | 'role'> = {
+    id: payload.id,
+    email: payload.email,
+    role: payload.role,
+  }
+
+  return await new SignJWT(jwtPayload)
     .setProtectedHeader({ alg: 'HS256' })
     .setIssuedAt()
     .setExpirationTime('24h')
-    .sign(key)
+    .sign(getJwtKey())
 }
 
 export async function decrypt(input: string): Promise<SessionUser> {
-  const { payload } = await jwtVerify(input, key, {
+  const { payload } = await jwtVerify(input, getJwtKey(), {
     algorithms: ['HS256'],
   })
 

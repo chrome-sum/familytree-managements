@@ -1,17 +1,21 @@
 import { getTreeData } from '@/lib/actions'
 import { FamilyTreeProvider } from '@/components/FamilyTreeContext'
 import TreeContainer from '@/components/TreeContainer'
-import { getSession } from '@/lib/auth'
+import { requireSession } from '@/lib/permissions'
 import { redirect } from 'next/navigation'
 
+export const dynamic = 'force-dynamic'
+
 export default async function Home() {
-  const session = await getSession()
-  if (!session) {
+  let data
+
+  try {
+    await requireSession()
+    data = await getTreeData()
+  } catch {
     redirect('/login')
   }
 
-  const data = await getTreeData()
-  
   return (
     <FamilyTreeProvider data={data}>
       <TreeContainer />

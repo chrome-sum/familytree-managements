@@ -1,10 +1,12 @@
 import type { Metadata } from "next";
-import { Outfit } from "next/font/google";
 import "./globals.css";
 
-const outfit = Outfit({ subsets: ["latin"] });
+const appUrl =
+  process.env.NEXT_PUBLIC_APP_URL ||
+  (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "http://localhost:3000");
 
 export const metadata: Metadata = {
+  metadataBase: new URL(appUrl),
   title: "Family Tree",
   description: "Modern family tree visualization",
   icons: {
@@ -54,7 +56,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className="dark">
-      <body className={`${outfit.className} antialiased bg-zinc-50 dark:bg-black text-zinc-900 dark:text-zinc-100 min-h-screen selection:bg-indigo-500/20 selection:text-indigo-500`}>
+      <body className="antialiased bg-zinc-50 dark:bg-black text-zinc-900 dark:text-zinc-100 min-h-screen selection:bg-indigo-500/20 selection:text-indigo-500">
         {children}
       </body>
     </html>

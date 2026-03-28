@@ -1,19 +1,24 @@
 import { redirect } from 'next/navigation'
 import UserManagementPanel from '@/components/UserManagementPanel'
-import { getSession } from '@/lib/auth'
 import { listUsersByAdmin } from '@/lib/actions-auth'
+import { requireRole } from '@/lib/permissions'
+
+export const dynamic = 'force-dynamic'
 
 export default async function UsersPage() {
-  const session = await getSession()
-  if (!session) {
-    redirect('/login')
-  }
+  let session
+  let users
 
-  if (session.role !== 'admin') {
+  try {
+    session = await requireRole(['admin'])
+    users = await listUsersByAdmin()
+  } catch (error) {
+    if (error instanceof Error && error.message.startsWith('Unauthorized')) {
+      redirect('/login')
+    }
+
     redirect('/')
   }
-
-  const users = await listUsersByAdmin()
 
   return <UserManagementPanel users={users} currentUserId={session.id} />
 }

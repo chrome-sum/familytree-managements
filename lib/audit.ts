@@ -1,3 +1,4 @@
+import type { JSONValue } from 'postgres'
 import sql from './db'
 import { UserRole } from './types'
 
@@ -8,7 +9,7 @@ type AuditPayload = {
   action: string
   targetType: string
   targetId?: string | null
-  details?: Record<string, unknown>
+  details?: JSONValue
 }
 
 export async function ensureAuditTable() {

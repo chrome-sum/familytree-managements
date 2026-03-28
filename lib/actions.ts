@@ -149,7 +149,7 @@ export async function replaceFullData(data: TreeData) {
   const { people, unions, parentChild } = data
   
   await sql.begin(async (t) => {
-    const tx = t as typeof sql
+    const tx = t as unknown as typeof sql
 
     // 1. Clear existing data
     await tx`TRUNCATE people CASCADE`

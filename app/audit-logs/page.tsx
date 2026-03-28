@@ -1,7 +1,9 @@
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
-import { getSession } from '@/lib/auth'
 import { listAuditLogsByAdmin } from '@/lib/actions-audit'
+import { requireRole } from '@/lib/permissions'
+
+export const dynamic = 'force-dynamic'
 
 function formatDetails(details: unknown) {
   if (!details || typeof details !== 'object') return '-'
@@ -10,12 +12,13 @@ function formatDetails(details: unknown) {
 }
 
 export default async function AuditLogsPage() {
-  const session = await getSession()
-  if (!session) {
-    redirect('/login')
-  }
+  try {
+    await requireRole(['admin'])
+  } catch (error) {
+    if (error instanceof Error && error.message.startsWith('Unauthorized')) {
+      redirect('/login')
+    }
 
-  if (session.role !== 'admin') {
     redirect('/')
   }
 

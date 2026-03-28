@@ -22,6 +22,8 @@ type AuthStatus = {
   email: string | null
 }
 
+type ExistingUser = Pick<DbUser, 'id' | 'role'>
+
 function normalizeRole(role: string | null | undefined): UserRole {
   if (role === 'admin' || role === 'editor' || role === 'viewer') return role
   return 'viewer'
@@ -51,6 +53,17 @@ async function countAdmins() {
   `
 
   return Number(result?.count || 0)
+}
+
+async function findUserById(userId: string): Promise<ExistingUser | null> {
+  const [user] = await sql<ExistingUser[]>`
+    SELECT id, role
+    FROM users
+    WHERE id = ${userId}
+    LIMIT 1
+  `
+
+  return user ?? null
 }
 
 export async function hasAnyAdmin() {
@@ -228,11 +241,7 @@ export async function updateUserRoleByAdmin(userId: string, role: UserRole) {
     return { error: 'Admin tidak bisa menurunkan rolenya sendiri.' }
   }
 
-  const [targetUser] = await sql<Pick<DbUser, 'role'>[]>`
-    SELECT role
-    FROM users
-    WHERE id = ${userId}
-  `
+  const targetUser = await findUserById(userId)
 
   if (!targetUser) {
     return { error: 'User tidak ditemukan.' }
@@ -246,7 +255,17 @@ export async function updateUserRoleByAdmin(userId: string, role: UserRole) {
   }
 
   const normalizedRole = normalizeRole(role)
-  await sql`UPDATE users SET role = ${normalizedRole} WHERE id = ${userId}`
+  const [updatedUser] = await sql<ExistingUser[]>`
+    UPDATE users
+    SET role = ${normalizedRole}
+    WHERE id = ${userId}
+    RETURNING id, role
+  `
+
+  if (!updatedUser) {
+    return { error: 'User tidak ditemukan.' }
+  }
+
   await logAudit({
     actorId: session.id,
     actorEmail: session.email,
@@ -267,8 +286,23 @@ export async function updateUserPasswordByAdmin(userId: string, newPassword: str
     return { error: 'Password minimal 6 karakter.' }
   }
 
+  const targetUser = await findUserById(userId)
+  if (!targetUser) {
+    return { error: 'User tidak ditemukan.' }
+  }
+
   const hashed = bcrypt.hashSync(newPassword, 10)
-  await sql`UPDATE users SET password = ${hashed} WHERE id = ${userId}`
+  const [updatedUser] = await sql<Pick<DbUser, 'id'>[]>`
+    UPDATE users
+    SET password = ${hashed}
+    WHERE id = ${userId}
+    RETURNING id
+  `
+
+  if (!updatedUser) {
+    return { error: 'User tidak ditemukan.' }
+  }
+
   await logAudit({
     actorId: session.id,
     actorEmail: session.email,
@@ -288,11 +322,7 @@ export async function deleteUserByAdmin(userId: string) {
     return { error: 'Admin tidak bisa menghapus akun sendiri.' }
   }
 
-  const [targetUser] = await sql<Pick<DbUser, 'role'>[]>`
-    SELECT role
-    FROM users
-    WHERE id = ${userId}
-  `
+  const targetUser = await findUserById(userId)
 
   if (!targetUser) {
     return { error: 'User tidak ditemukan.' }
@@ -305,7 +335,16 @@ export async function deleteUserByAdmin(userId: string) {
     }
   }
 
-  await sql`DELETE FROM users WHERE id = ${userId}`
+  const [deletedUser] = await sql<Pick<DbUser, 'id'>[]>`
+    DELETE FROM users
+    WHERE id = ${userId}
+    RETURNING id
+  `
+
+  if (!deletedUser) {
+    return { error: 'User tidak ditemukan.' }
+  }
+
   await logAudit({
     actorId: session.id,
     actorEmail: session.email,
