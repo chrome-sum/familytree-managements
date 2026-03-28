@@ -3,26 +3,31 @@
 import { useState, useEffect, FormEvent, ChangeEvent } from 'react'
 import { useRouter } from 'next/navigation'
 import FamilyTreeLayout from './FamilyTreeLayout'
-import { Plus, Users, Palette, Search, ChevronRight, X, Heart, UserPlus, Info, Edit2, LogOut } from 'lucide-react'
+import { Users, Search, ChevronRight, X, LogOut, Plus } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Person, Gender, Status } from '@/lib/types'
+import { Person, Gender, Status, TreeData } from '@/lib/types'
 import { addPerson, addUnion, addChildToUnion, deletePerson, updatePerson, replaceFullData, getTreeData, updateUnionStatus } from '@/lib/actions'
 import { logout } from '@/lib/actions-auth'
-import PersonCard, { cn } from './PersonCard'
+import { cn } from './PersonCard'
 import Sidebar from './Sidebar'
-import SettingsModal from './SettingsModal'
 import AppAlert from './AppAlert'
 import { useFamilyTree } from './FamilyTreeContext'
 
+const THEMES = [
+  { name: 'Indigo', primary: '263.4 70% 50.4%', bg: '240 10% 3.9%' },
+  { name: 'Rose', primary: '346.8 77% 49.8%', bg: '350 10% 3.9%' },
+  { name: 'Emerald', primary: '142.1 70.6% 45.3%', bg: '150 10% 2%' },
+  { name: 'Amber', primary: '37.9 92.1% 50.2%', bg: '40 10% 2%' },
+]
+
 export default function TreeContainer() {
   const router = useRouter()
-  const { data, setRootPersonId, rootPersonId } = useFamilyTree()
+  const { data, setRootPersonId, rootPersonId, canEditTree } = useFamilyTree()
   const [isModalOpen, setModalOpen] = useState(false)
   const [modalType, setModalType] = useState<'add' | 'spouse' | 'child' | 'edit'>('add')
   const [targetId, setTargetId] = useState<string | null>(null)
   const [editingPerson, setEditingPerson] = useState<Person | null>(null)
   const [isSidebarOpen, setSidebarOpen] = useState(true)
-  const [isSettingsModalOpen, setSettingsModalOpen] = useState(false)
   const [alertState, setAlertState] = useState<{ isOpen: boolean; title: string; message: string; type: 'danger' | 'warning' | 'info' | 'success'; onConfirm?: () => void }>({ isOpen: false, title: '', message: '', type: 'info' })
   const [loading, setLoading] = useState(false)
   const [searchTerm, setSearchTerm] = useState('')
@@ -34,24 +39,18 @@ export default function TreeContainer() {
   }
 
   const handleToggleDivorce = async (id: string, currentStatus: string) => {
+    if (!canEditTree) return
     const nextStatus = currentStatus === 'divorced' ? 'married' : 'divorced'
     try {
       await updateUnionStatus(id, nextStatus)
       showAlert('Berhasil', nextStatus === 'divorced' ? 'Status hubungan telah diubah menjadi cerai.' : 'Status hubungan telah kembali rujuk.', 'success')
-    } catch (err) {
+    } catch {
       showAlert('Gagal', 'Terjadi kesalahan saat mengubah status hubungan.', 'danger')
     }
   }
 
-  const themes = [
-    { name: 'Indigo', primary: '263.4 70% 50.4%', bg: '240 10% 3.9%' },
-    { name: 'Rose', primary: '346.8 77% 49.8%', bg: '350 10% 3.9%' },
-    { name: 'Emerald', primary: '142.1 70.6% 45.3%', bg: '150 10% 2%' },
-    { name: 'Amber', primary: '37.9 92.1% 50.2%', bg: '40 10% 2%' },
-  ]
-
   useEffect(() => {
-    const theme = themes.find(t => t.name === activeTheme) || themes[0]
+    const theme = THEMES.find(t => t.name === activeTheme) || THEMES[0]
     document.documentElement.style.setProperty('--primary', theme.primary)
     // Update background color based on theme
     document.documentElement.style.setProperty('--background', theme.bg)
@@ -59,6 +58,7 @@ export default function TreeContainer() {
 
   const handleAddPerson = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault()
+    if (!canEditTree) return
     setLoading(true)
     const formData = new FormData(e.currentTarget)
     const personData: Partial<Person> = {
@@ -93,7 +93,7 @@ export default function TreeContainer() {
       setModalOpen(false)
       setTargetId(null)
       setEditingPerson(null)
-    } catch (err) {
+    } catch {
       showAlert('Gagal', 'Terjadi kesalahan saat memproses permintaan Anda.', 'danger')
     } finally {
       setLoading(false)
@@ -120,14 +120,14 @@ export default function TreeContainer() {
   }
 
   const handleConnectExistingSpouse = async (existingId: string) => {
-    if (!targetId) return
+    if (!targetId || !canEditTree) return
     setLoading(true)
     try {
       await addUnion(targetId, existingId)
       showAlert('Berhasil', 'Anggota telah berhasil disambungkan sebagai pasangan.', 'success')
       setModalOpen(false)
       setTargetId(null)
-    } catch (err) {
+    } catch {
       showAlert('Gagal', 'Gagal menyambungkan pasangan.', 'danger')
     } finally {
       setLoading(false)
@@ -146,7 +146,8 @@ export default function TreeContainer() {
     showAlert('Berhasil', 'Data silsilah telah diekspor ke file JSON.', 'success')
   }
 
-  const handleImport = async (importData: any) => {
+  const handleImport = async (importData: TreeData) => {
+    if (!canEditTree) return
     showAlert(
       'Konfirmasi Impor',
       'Ini akan menghapus SEMUA data saat ini dan menggantinya dengan data impor. Lanjutkan?',
@@ -156,7 +157,7 @@ export default function TreeContainer() {
         try {
           await replaceFullData(importData)
           window.location.reload()
-        } catch (err) {
+        } catch {
           showAlert('Gagal Mengimpor', 'Terjadi kesalahan saat memproses data JSON.', 'danger')
         } finally {
           setLoading(false)
@@ -210,7 +211,7 @@ export default function TreeContainer() {
         {/* Floating Controls */}
         <div className="absolute top-8 right-8 z-30 flex items-center gap-2">
           <div className="flex bg-zinc-900/80 backdrop-blur-md py-2 px-3 gap-1 items-center rounded-2xl border border-white/10 shadow-2xl">
-            {themes.map((theme) => (
+            {THEMES.map((theme) => (
               <button
                 key={theme.name}
                 onClick={() => setActiveTheme(theme.name)}
@@ -242,30 +243,28 @@ export default function TreeContainer() {
           </div>
         </div>
 
-        {/* Tree Container with Infinite Horizontal Scroll */}
+        {/* Tree Container with gesture pan/zoom (no manual scroll) */}
         <div
+          onPointerDown={() => setSidebarOpen(false)}
           onClick={() => setSidebarOpen(false)}
-          onScroll={() => setSidebarOpen(false)}
-          className="w-full h-full p-8 overflow-auto custom-scrollbar">
-          <div className="min-w-max min-h-max">
-            <FamilyTreeLayout
-              onAddSpouse={(id) => { setTargetId(id); setModalType('spouse'); setModalOpen(true); setModalTab('new'); }}
-              onAddChild={(id) => { setTargetId(id); setModalType('child'); setModalOpen(true); setModalTab('new'); }}
-              onToggleDivorce={handleToggleDivorce}
-              onDelete={(id) => {
-                showAlert(
-                  'Hapus Anggota',
-                  'Apakah Anda yakin ingin menghapus anggota ini? Tindakan ini tidak dapat dibatalkan.',
-                  'danger',
-                  async () => {
-                    await deletePerson(id)
-                    showAlert('Berhasil', 'Anggota telah dihapus.', 'success')
-                  }
-                )
-              }}
-              onEdit={(person) => { setEditingPerson(person); setModalType('edit'); setModalOpen(true); setModalTab('new'); }}
-            />
-          </div>
+          className="w-full h-full overflow-hidden">
+          <FamilyTreeLayout
+            onAddSpouse={canEditTree ? (id) => { setTargetId(id); setModalType('spouse'); setModalOpen(true); setModalTab('new'); } : undefined}
+            onAddChild={canEditTree ? (id) => { setTargetId(id); setModalType('child'); setModalOpen(true); setModalTab('new'); } : undefined}
+            onToggleDivorce={canEditTree ? handleToggleDivorce : undefined}
+            onDelete={canEditTree ? (id) => {
+              showAlert(
+                'Hapus Anggota',
+                'Apakah Anda yakin ingin menghapus anggota ini? Tindakan ini tidak dapat dibatalkan.',
+                'danger',
+                async () => {
+                  await deletePerson(id)
+                  showAlert('Berhasil', 'Anggota telah dihapus.', 'success')
+                }
+              )
+            } : undefined}
+            onEdit={canEditTree ? (person) => { setEditingPerson(person); setModalType('edit'); setModalOpen(true); setModalTab('new'); } : undefined}
+          />
         </div>
       </main>
 
@@ -403,6 +402,8 @@ export default function TreeContainer() {
                           </div>
                           {editingPerson?.photo_url && (
                             <div className="w-14 h-14 rounded-xl overflow-hidden border-2 border-white/10 flex-shrink-0">
+                              {/* Preview supports dynamic URLs and data URLs from uploads */}
+                              {/* eslint-disable-next-line @next/next/no-img-element */}
                               <img src={editingPerson.photo_url} alt="Preview" className="w-full h-full object-cover" />
                             </div>
                           )}
@@ -487,11 +488,6 @@ export default function TreeContainer() {
         message={alertState.message}
         onConfirm={alertState.onConfirm}
         onClose={() => setAlertState(prev => ({ ...prev, isOpen: false }))}
-      />
-
-      <SettingsModal
-        isOpen={isSettingsModalOpen}
-        onClose={() => setSettingsModalOpen(false)}
       />
     </div>
   )
